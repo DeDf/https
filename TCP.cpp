@@ -1,4 +1,4 @@
-//Client.cpp
+
 #include <stdio.h>
 #include <winsock2.h>
 
@@ -32,8 +32,8 @@ BOOL Write(char* chFileName, char *buf, DWORD len)
 
     tmpBuf = buf;
 
-    do{                                       //循环写文件，确保完整的文件被写入  
-
+    do
+    {                                       //循环写文件，确保完整的文件被写入  
         WriteFile(pFile,tmpBuf,dwBytesToWrite,&dwBytesWrite,NULL);
 
         dwBytesToWrite -= dwBytesWrite;
@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
     if(WSAStartup(MAKEWORD(2,2),&wsa)!=0)
     {
         printf("套接字初始化失败!\n");
-        exit(-1);
+        return -1;
     }
 
     //创建套接字
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     if(s==INVALID_SOCKET)
     {
         printf("创建套接字失败!\n");
-        exit(-1);
+        return -1;
     }
 
     //建立和服务器的连接
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
     if(connect(s,(sockaddr*)&serverAddress,sizeof(serverAddress))==SOCKET_ERROR)
     {
         printf("建立连接失败!\n");
-        exit(-1);
+        return -1;
     }
 
     char ClientHello[64];
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
     if(send(s,ClientHello,SendLen,0)==SOCKET_ERROR)
     {
         printf("发送数据失败!\n");
-        exit(-1);
+        return -1;
     }
 
     char ServerHello[100];
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
     if(RecvLen1==SOCKET_ERROR)
     {
         printf("接收数据失败!\n");
-        exit(-1);
+        return -1;
     }
 
     char Certificate[4096];
@@ -104,9 +104,8 @@ int main(int argc, char* argv[])
     if(RecvLen2==SOCKET_ERROR)
     {
         printf("接收数据失败!\n");
-        exit(-1);
+        return -1;
     }
-
     UCHAR *p = (UCHAR *)(Certificate + 0xC);
     ULONG CerLen1 = p[0]<<16 | p[1]<<8 | p[2];
     p += 3;
@@ -122,7 +121,7 @@ int main(int argc, char* argv[])
     if(RecvLen3==SOCKET_ERROR)
     {
         printf("接收数据失败!\n");
-        exit(-1);
+        return -1;
     }
 
     char ServerHelloDone[20];
@@ -130,7 +129,7 @@ int main(int argc, char* argv[])
     if(RecvLen4==SOCKET_ERROR)
     {
         printf("接收数据失败!\n");
-        exit(-1);
+        return -1;
     }
 
     printf("Message from %s: %s\n", inet_ntoa(serverAddress.sin_addr), ServerHello);
