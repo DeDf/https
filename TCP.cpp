@@ -6,13 +6,11 @@
 
 ULONG MakeClientHello(CHAR *pBuf, ULONG size);
 
-BOOL Write(char* chFileName, char *buf, DWORD len)
+BOOL Write(char *chFileName, char *buf, DWORD len)
 {
-    HANDLE pFile;
-    char *tmpBuf;
-    DWORD dwBytesWrite,dwBytesToWrite;
+    BOOL bRet = FALSE;
 
-    pFile = CreateFileA(chFileName,
+    HANDLE pFile = CreateFileA(chFileName,
         GENERIC_WRITE,          
         0,
         NULL,               
@@ -20,30 +18,31 @@ BOOL Write(char* chFileName, char *buf, DWORD len)
         FILE_ATTRIBUTE_NORMAL, 
         NULL);
 
-    if ( pFile == INVALID_HANDLE_VALUE)
+    if ( pFile != INVALID_HANDLE_VALUE)
     {
-        printf("create file error!\n");
+        DWORD dwBytesToWrite = len;
+        DWORD dwBytesWrite = 0;
+
+        char *p = buf;
+        do  //循环写文件，确保完整的文件被写入
+        {
+            bRet = WriteFile(pFile,p,dwBytesToWrite,&dwBytesWrite,NULL);
+            if (bRet)
+            {
+                dwBytesToWrite -= dwBytesWrite;
+                p += dwBytesWrite;
+            }
+            else
+            {
+                break;
+            }
+
+        } while (dwBytesToWrite > 0);
+
         CloseHandle(pFile);
-        return FALSE;
     }
 
-    dwBytesToWrite = len;
-    dwBytesWrite = 0;
-
-    tmpBuf = buf;
-
-    do
-    {                                       //循环写文件，确保完整的文件被写入  
-        WriteFile(pFile,tmpBuf,dwBytesToWrite,&dwBytesWrite,NULL);
-
-        dwBytesToWrite -= dwBytesWrite;
-        tmpBuf += dwBytesWrite;
-
-    } while (dwBytesToWrite > 0);
-
-    CloseHandle(pFile);
-
-    return TRUE;
+    return bRet;
 }
 
 int main(int argc, char* argv[])
@@ -51,7 +50,7 @@ int main(int argc, char* argv[])
     char *pchIP = "61.135.169.121";  // www.baidu.com
     short port  = 443;
 
-    //初始化套接字DLL
+    //初始化套接字
     WSADATA wsa;
     if(WSAStartup(MAKEWORD(2,2),&wsa)!=0)
     {
