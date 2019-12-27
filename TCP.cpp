@@ -6,7 +6,7 @@
 
 ULONG MakeClientHello(CHAR *pBuf, ULONG size);
 
-BOOL Write(char *chFileName, char *buf, DWORD len)
+BOOL Write(char *chFileName, UCHAR *buf, DWORD len)
 {
     BOOL bRet = FALSE;
 
@@ -23,7 +23,7 @@ BOOL Write(char *chFileName, char *buf, DWORD len)
         DWORD dwBytesToWrite = len;
         DWORD dwBytesWrite = 0;
 
-        char *p = buf;
+        UCHAR *p = buf;
         do  //循环写文件，确保完整的文件被写入
         {
             bRet = WriteFile(pFile,p,dwBytesToWrite,&dwBytesWrite,NULL);
@@ -47,12 +47,13 @@ BOOL Write(char *chFileName, char *buf, DWORD len)
 
 int main(int argc, char* argv[])
 {
-    char *pchIP = "61.135.169.121";  // www.baidu.com
+    char *pchIP = "14.215.177.38";  // www.baidu.com
+    //char *pchIP = "61.135.169.121";  // www.baidu.com
     short port  = 443;
 
     //初始化套接字
     WSADATA wsa;
-    if(WSAStartup(MAKEWORD(2,2),&wsa)!=0)
+    if(WSAStartup(MAKEWORD(2,2),&wsa))
     {
         printf("套接字初始化失败!\n");
         return -1;
@@ -90,33 +91,60 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    char ServerHello[100];
-    int RecvLen1=recv(s,ServerHello,sizeof(ServerHello),0);
+    UCHAR *p = NULL;
+    ULONG nOverBytes = 0;
+
+    UCHAR ServerHello[100];
+    UCHAR Certificate[0x1000];
+
+    int RecvLen1=recv(s,(char*)ServerHello,sizeof(ServerHello),0);
     if(RecvLen1==SOCKET_ERROR)
     {
         printf("接收数据失败!\n");
         return -1;
     }
-
-    char Certificate[4096];
-    int RecvLen2=recv(s,Certificate,sizeof(Certificate),0);
+    p = ServerHello + 3;
+    USHORT ServerHelloDataLen = _byteswap_ushort(*(PUSHORT)p);
+    USHORT ServerHelloLen = 3 + 2 + ServerHelloDataLen;
+    if (ServerHelloLen != RecvLen1)
+    {
+        if (ServerHelloLen > RecvLen1)
+        {
+            printf("ServerHello Format Error!\n");
+            goto L_Exit;
+        }
+        else
+        {
+            p = ServerHello + ServerHelloLen;
+            nOverBytes = RecvLen1 - ServerHelloLen;
+            memcpy(Certificate, p, nOverBytes);
+        }
+    }
+    
+    int RecvLen2=recv(s, (char*)Certificate + nOverBytes, sizeof(Certificate) - nOverBytes, 0);
     if(RecvLen2==SOCKET_ERROR)
     {
         printf("接收数据失败!\n");
         return -1;
     }
-    UCHAR *p = (UCHAR *)(Certificate + 0xC);
+    p = Certificate + 3;
+    USHORT CertificateLen = _byteswap_ushort(*(PUSHORT)p);
+
+    p = Certificate + 0xC;
     ULONG CerLen1 = p[0]<<16 | p[1]<<8 | p[2];
     p += 3;
-    Write("d:\\1.cer", (char*)p, CerLen1);
-
+    Write("d:\\1.cer", p, CerLen1);
     p += CerLen1;
+
     ULONG CerLen2 = p[0]<<16 | p[1]<<8 | p[2];
     p += 3;
-    Write("d:\\2.cer", (char*)p, CerLen2);
+    Write("d:\\2.cer", p, CerLen2);
+    p += CerLen2;
+    //
+    printf("CertificateLen : %d, CerLen1 : %d, CerLen2 : %d\n", CertificateLen, CerLen1, CerLen2);
 
     char ServerKeyExchange[512];
-    int RecvLen3=recv(s,ServerKeyExchange,sizeof(ServerKeyExchange),0);
+    int RecvLen3=recv(s,(char*)ServerKeyExchange,sizeof(ServerKeyExchange),0);
     if(RecvLen3==SOCKET_ERROR)
     {
         printf("接收数据失败!\n");
@@ -133,6 +161,8 @@ int main(int argc, char* argv[])
 
     printf("Message from %s: %s\n", inet_ntoa(serverAddress.sin_addr), ServerHello);
 
+L_Exit:
+    getchar();
     //清理套接字占用的资源
     WSACleanup();
     return 0;
