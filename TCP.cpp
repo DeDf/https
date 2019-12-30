@@ -4,7 +4,7 @@
 
 #pragma comment(lib,"ws2_32.lib")
 
-ULONG MakeClientHello(CHAR *pBuf, ULONG size);
+ULONG MakeClientHello(UCHAR *pBuf, ULONG size);
 
 BOOL Write(char *chFileName, UCHAR *buf, DWORD len)
 {
@@ -81,11 +81,11 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    char ClientHello[64];
+    UCHAR ClientHello[64];
     ULONG SendLen = MakeClientHello(ClientHello, sizeof(ClientHello));
 
     // SendClientHello
-    if(send(s,ClientHello,SendLen,0)==SOCKET_ERROR)
+    if(send(s,(char*)ClientHello,SendLen,0)==SOCKET_ERROR)
     {
         printf("·¢ËÍÊý¾ÝÊ§°Ü!\n");
         return -1;
