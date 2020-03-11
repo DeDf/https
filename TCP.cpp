@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 
     //创建套接字
     SOCKET s = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-    if(s==INVALID_SOCKET)
+    if(s == INVALID_SOCKET)
     {
         printf("创建套接字失败!\n");
         return -1;
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
     //建立和服务器的连接
     struct sockaddr_in serverAddress;
     memset(&serverAddress,0,sizeof(sockaddr_in));
-    serverAddress.sin_family=AF_INET;
+    serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = inet_addr(pchIP);
     serverAddress.sin_port = htons(port);
     
@@ -80,6 +80,7 @@ int main(int argc, char* argv[])
         printf("建立连接失败!\n");
         return -1;
     }
+    printf("success ~\n");
 
     UCHAR ClientHello[64];
     ULONG SendLen = MakeClientHello(ClientHello, sizeof(ClientHello));
@@ -163,7 +164,7 @@ int main(int argc, char* argv[])
 
 L_Exit:
     getchar();
-    //清理套接字占用的资源
-    WSACleanup();
+    closesocket(s);
+    WSACleanup();    //清理套接字占用的资源
     return 0;
 }
